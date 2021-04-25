@@ -336,6 +336,8 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 	                      NULL) != SQLITE_OK)
 	if(self->stmt_attr == NULL)
 	{
+		LOGE("sqlite3_prepare_v2: %s",
+		     sqlite3_errmsg(self->db));
 		goto fail_prepare_attr;
 	}
 
@@ -343,6 +345,7 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 	                 CALLOC(nth, sizeof(sqlite3_stmt*));
 	if(self->stmt_get == NULL)
 	{
+		LOGE("CALLOC failed");
 		goto fail_alloc_get;
 	}
 
@@ -380,6 +383,8 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 	                      &self->stmt_clear,
 	                      NULL) != SQLITE_OK)
 	{
+		LOGE("sqlite3_prepare_v2: %s",
+		     sqlite3_errmsg(self->db));
 		goto fail_prepare_clear;
 	}
 
@@ -390,6 +395,8 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 	                      NULL) != SQLITE_OK)
 	if(self->stmt_list == NULL)
 	{
+		LOGE("sqlite3_prepare_v2: %s",
+		     sqlite3_errmsg(self->db));
 		goto fail_prepare_list;
 	}
 
@@ -397,6 +404,7 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 	                  CALLOC(nth, sizeof(sqlite3_stmt*));
 	if(self->stmt_load == NULL)
 	{
+		LOGE("CALLOC failed");
 		goto fail_alloc_load;
 	}
 
@@ -434,6 +442,8 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 	                      &self->stmt_remove,
 	                      NULL) != SQLITE_OK)
 	{
+		LOGE("sqlite3_prepare_v2: %s",
+		     sqlite3_errmsg(self->db));
 		goto fail_prepare_remove;
 	}
 
