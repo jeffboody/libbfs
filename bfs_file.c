@@ -80,7 +80,6 @@ static void bfs_file_lockExclusive(bfs_file_t* self)
 	{
 		pthread_cond_wait(&self->cond, &self->mutex);
 	}
-	pthread_mutex_unlock(&self->mutex);
 }
 
 static void bfs_file_unlockExclusive(bfs_file_t* self)
@@ -93,7 +92,6 @@ static void bfs_file_unlockExclusive(bfs_file_t* self)
 		return;
 	}
 
-	pthread_mutex_lock(&self->mutex);
 	--self->exclusive;
 	pthread_cond_broadcast(&self->cond);
 	pthread_mutex_unlock(&self->mutex);
@@ -868,7 +866,7 @@ int bfs_file_store(bfs_file_t* self, const char* name,
 		if(sqlite3_bind_text(stmt, idx_name, name, -1,
 		                     SQLITE_TRANSIENT) != SQLITE_OK)
 		{
-			LOGE("sqlite3_bind_text failed");
+			LOGE("sqlite3_bind_text: %s", sqlite3_errmsg(self->db));
 			bfs_file_unlockExclusive(self);
 			return 0;
 		}
