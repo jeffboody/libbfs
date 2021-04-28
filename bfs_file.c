@@ -675,6 +675,11 @@ int bfs_file_attrSet(bfs_file_t* self, const char* key,
 	ASSERT(self);
 	ASSERT(key);
 
+	if(val == NULL)
+	{
+		return bfs_file_attrClr(self, key);
+	}
+
 	bfs_file_lockExclusive(self);
 	if(bfs_file_beginTransaction(self) == 0)
 	{
@@ -685,32 +690,58 @@ int bfs_file_attrSet(bfs_file_t* self, const char* key,
 	int           idx_key;
 	int           idx_val;
 	sqlite3_stmt* stmt;
-	if(val)
+	idx_key = self->idx_attr_set_key;
+	idx_val = self->idx_attr_set_val;
+	stmt    = self->stmt_attr_set;
+	if((sqlite3_bind_text(stmt, idx_key, key, -1,
+	                      SQLITE_TRANSIENT) != SQLITE_OK) ||
+	   (sqlite3_bind_text(stmt, idx_val, val, -1,
+	                      SQLITE_TRANSIENT) != SQLITE_OK))
 	{
-		idx_key = self->idx_attr_set_key;
-		idx_val = self->idx_attr_set_val;
-		stmt    = self->stmt_attr_set;
-		if((sqlite3_bind_text(stmt, idx_key, key, -1,
-		                      SQLITE_TRANSIENT) != SQLITE_OK) ||
-		   (sqlite3_bind_text(stmt, idx_val, val, -1,
-		                      SQLITE_TRANSIENT) != SQLITE_OK))
-		{
-			LOGE("sqlite3_bind_text failed");
-			bfs_file_unlockExclusive(self);
-			return 0;
-		}
+		LOGE("sqlite3_bind_text failed");
+		bfs_file_unlockExclusive(self);
+		return 0;
 	}
-	else
+
+	int ret = 1;
+	if(sqlite3_step(stmt) != SQLITE_DONE)
 	{
-		idx_key = self->idx_attr_clr_key;
-		stmt    = self->stmt_attr_clr;
-		if(sqlite3_bind_text(stmt, idx_key, key, -1,
-		                     SQLITE_TRANSIENT) != SQLITE_OK)
-		{
-			LOGE("sqlite3_bind_text failed");
-			bfs_file_unlockExclusive(self);
-			return 0;
-		}
+		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		ret = 0;
+	}
+
+	if(sqlite3_reset(stmt) != SQLITE_OK)
+	{
+		LOGW("sqlite3_reset failed");
+	}
+
+	bfs_file_unlockExclusive(self);
+
+	return ret;
+}
+
+int bfs_file_attrClr(bfs_file_t* self, const char* key)
+{
+	ASSERT(self);
+	ASSERT(key);
+
+	bfs_file_lockExclusive(self);
+	if(bfs_file_beginTransaction(self) == 0)
+	{
+		bfs_file_unlockExclusive(self);
+		return 0;
+	}
+
+	int idx_key;
+	sqlite3_stmt* stmt;
+	idx_key = self->idx_attr_clr_key;
+	stmt    = self->stmt_attr_clr;
+	if(sqlite3_bind_text(stmt, idx_key, key, -1,
+	                     SQLITE_TRANSIENT) != SQLITE_OK)
+	{
+		LOGE("sqlite3_bind_text failed");
+		bfs_file_unlockExclusive(self);
+		return 0;
 	}
 
 	int ret = 1;
@@ -843,6 +874,11 @@ int bfs_file_blobSet(bfs_file_t* self, const char* name,
 	ASSERT(self);
 	ASSERT(name);
 
+	if((size == 0) || (data == NULL))
+	{
+		return bfs_file_blobClr(self, name);
+	}
+
 	bfs_file_lockExclusive(self);
 	if(bfs_file_beginTransaction(self) == 0)
 	{
@@ -853,33 +889,59 @@ int bfs_file_blobSet(bfs_file_t* self, const char* name,
 	int           idx_name;
 	int           idx_blob;
 	sqlite3_stmt* stmt;
-	if(data)
+	idx_name = self->idx_blob_set_name;
+	idx_blob = self->idx_blob_set_blob;
+	stmt     = self->stmt_blob_set;
+	if((sqlite3_bind_text(stmt, idx_name, name, -1,
+	                      SQLITE_TRANSIENT) != SQLITE_OK) ||
+	   (sqlite3_bind_blob(stmt, idx_blob,
+	                      data, size,
+	                      SQLITE_TRANSIENT) != SQLITE_OK))
 	{
-		idx_name = self->idx_blob_set_name;
-		idx_blob = self->idx_blob_set_blob;
-		stmt     = self->stmt_blob_set;
-		if((sqlite3_bind_text(stmt, idx_name, name, -1,
-		                      SQLITE_TRANSIENT) != SQLITE_OK) ||
-		   (sqlite3_bind_blob(stmt, idx_blob,
-		                      data, size,
-		                      SQLITE_TRANSIENT) != SQLITE_OK))
-		{
-			LOGE("sqlite3_bind_text/sqlite3_bind_blob failed");
-			bfs_file_unlockExclusive(self);
-			return 0;
-		}
+		LOGE("sqlite3_bind_text/sqlite3_bind_blob failed");
+		bfs_file_unlockExclusive(self);
+		return 0;
 	}
-	else
+
+	int ret = 1;
+	if(sqlite3_step(stmt) != SQLITE_DONE)
 	{
-		idx_name = self->idx_blob_clr_name;
-		stmt     = self->stmt_blob_clr;
-		if(sqlite3_bind_text(stmt, idx_name, name, -1,
-		                     SQLITE_TRANSIENT) != SQLITE_OK)
-		{
-			LOGE("sqlite3_bind_text: %s", sqlite3_errmsg(self->db));
-			bfs_file_unlockExclusive(self);
-			return 0;
-		}
+		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		ret = 0;
+	}
+
+	if(sqlite3_reset(stmt) != SQLITE_OK)
+	{
+		LOGW("sqlite3_reset failed");
+	}
+
+	bfs_file_unlockExclusive(self);
+
+	return ret;
+}
+
+int bfs_file_blobClr(bfs_file_t* self, const char* name)
+{
+	ASSERT(self);
+	ASSERT(name);
+
+	bfs_file_lockExclusive(self);
+	if(bfs_file_beginTransaction(self) == 0)
+	{
+		bfs_file_unlockExclusive(self);
+		return 0;
+	}
+
+	int           idx_name;
+	sqlite3_stmt* stmt;
+	idx_name = self->idx_blob_clr_name;
+	stmt     = self->stmt_blob_clr;
+	if(sqlite3_bind_text(stmt, idx_name, name, -1,
+	                     SQLITE_TRANSIENT) != SQLITE_OK)
+	{
+		LOGE("sqlite3_bind_text: %s", sqlite3_errmsg(self->db));
+		bfs_file_unlockExclusive(self);
+		return 0;
 	}
 
 	int ret = 1;

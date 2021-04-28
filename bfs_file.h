@@ -94,6 +94,8 @@ int         bfs_file_attrGet(bfs_file_t* self,
 int         bfs_file_attrSet(bfs_file_t* self,
                              const char* key,
                              const char* val);
+int         bfs_file_attrClr(bfs_file_t* self,
+                             const char* key);
 int         bfs_file_blobList(bfs_file_t* self,
                               void* priv,
                               bfs_blob_fn blob_fn);
@@ -106,5 +108,7 @@ int         bfs_file_blobSet(bfs_file_t* self,
                              const char* name,
                              size_t size,
                              const void* data);
+int         bfs_file_blobClr(bfs_file_t* self,
+                             const char* name);
 
 #endif
