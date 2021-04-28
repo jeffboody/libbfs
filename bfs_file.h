@@ -31,7 +31,7 @@
 typedef int (*bfs_attr_fn)(void* priv,
                            const char* key,
                            const char* val);
-typedef int (*bfs_list_fn)(void* priv,
+typedef int (*bfs_blob_fn)(void* priv,
                            const char* name,
                            size_t size);
 
@@ -53,24 +53,24 @@ typedef struct
 	int            batch_size;
 	sqlite3_stmt*  stmt_begin;
 	sqlite3_stmt*  stmt_end;
-	sqlite3_stmt*  stmt_attr;
-	sqlite3_stmt** stmt_get;
-	sqlite3_stmt*  stmt_set;
-	sqlite3_stmt*  stmt_clear;
-	sqlite3_stmt*  stmt_list;
-	sqlite3_stmt** stmt_load;
-	sqlite3_stmt*  stmt_store;
-	sqlite3_stmt*  stmt_remove;
+	sqlite3_stmt*  stmt_attr_list;
+	sqlite3_stmt** stmt_attr_get;
+	sqlite3_stmt*  stmt_attr_set;
+	sqlite3_stmt*  stmt_attr_clr;
+	sqlite3_stmt*  stmt_blob_list;
+	sqlite3_stmt** stmt_blob_get;
+	sqlite3_stmt*  stmt_blob_set;
+	sqlite3_stmt*  stmt_blob_clr;
 
 	// sqlite3 indices
-	int idx_get_key;
-	int idx_set_key;
-	int idx_set_val;
-	int idx_clear_key;
-	int idx_load_name;
-	int idx_store_name;
-	int idx_store_blob;
-	int idx_remove_name;
+	int idx_attr_get_key;
+	int idx_attr_set_key;
+	int idx_attr_set_val;
+	int idx_attr_clr_key;
+	int idx_blob_get_name;
+	int idx_blob_set_name;
+	int idx_blob_set_blob;
+	int idx_blob_clr_name;
 
 	// locking
 	pthread_mutex_t mutex;
@@ -83,28 +83,28 @@ bfs_file_t* bfs_file_open(const char* fname,
                           int nth,
                           bfs_mode_e mode);
 void        bfs_file_close(bfs_file_t** _self);
-int         bfs_file_attr(bfs_file_t* self,
-                          void* priv,
-                          bfs_attr_fn attr_fn);
-int         bfs_file_get(bfs_file_t* self,
-                         int tid,
-                         const char* key,
-                         size_t size,
-                         char* val);
-int         bfs_file_set(bfs_file_t* self,
-                         const char* key,
-                         const char* val);
-int         bfs_file_list(bfs_file_t* self,
-                          void* priv,
-                          bfs_list_fn list_fn);
-int         bfs_file_load(bfs_file_t* self,
-                          int tid,
-                          const char* name,
-                          size_t* _size,
-                          void** _data);
-int         bfs_file_store(bfs_file_t* self,
-                           const char* name,
-                           size_t size,
-                           const void* data);
+int         bfs_file_attrList(bfs_file_t* self,
+                              void* priv,
+                              bfs_attr_fn attr_fn);
+int         bfs_file_attrGet(bfs_file_t* self,
+                             int tid,
+                             const char* key,
+                             size_t size,
+                             char* val);
+int         bfs_file_attrSet(bfs_file_t* self,
+                             const char* key,
+                             const char* val);
+int         bfs_file_blobList(bfs_file_t* self,
+                              void* priv,
+                              bfs_blob_fn blob_fn);
+int         bfs_file_blobGet(bfs_file_t* self,
+                             int tid,
+                             const char* name,
+                             size_t* _size,
+                             void** _data);
+int         bfs_file_blobSet(bfs_file_t* self,
+                             const char* name,
+                             size_t size,
+                             const void* data);
 
 #endif

@@ -328,141 +328,141 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 		goto fail_prepare_end;
 	}
 
-	const char* sql_attr;
-	sql_attr = "SELECT key, val FROM tbl_attr"
-	           "   WHERE key=@arg_key;";
-	if(sqlite3_prepare_v2(self->db, sql_attr, -1,
-	                      &self->stmt_attr,
+	const char* sql_attr_list;
+	sql_attr_list = "SELECT key, val FROM tbl_attr"
+	                "   WHERE key=@arg_key;";
+	if(sqlite3_prepare_v2(self->db, sql_attr_list, -1,
+	                      &self->stmt_attr_list,
 	                      NULL) != SQLITE_OK)
-	if(self->stmt_attr == NULL)
+	if(self->stmt_attr_list == NULL)
 	{
 		LOGE("sqlite3_prepare_v2: %s",
 		     sqlite3_errmsg(self->db));
-		goto fail_prepare_attr;
+		goto fail_prepare_attr_list;
 	}
 
-	self->stmt_get = (sqlite3_stmt**)
-	                 CALLOC(nth, sizeof(sqlite3_stmt*));
-	if(self->stmt_get == NULL)
+	self->stmt_attr_get = (sqlite3_stmt**)
+	                      CALLOC(nth, sizeof(sqlite3_stmt*));
+	if(self->stmt_attr_get == NULL)
 	{
 		LOGE("CALLOC failed");
-		goto fail_alloc_get;
+		goto fail_alloc_attr_get;
 	}
 
 	int i;
 	for(i = 0; i < nth; ++i)
 	{
-		const char* sql_get;
-		sql_get = "SELECT val FROM tbl_attr"
-		          "   WHERE key=@arg_key;";
-		if(sqlite3_prepare_v2(self->db, sql_get, -1,
-		                      &self->stmt_get[i],
+		const char* sql_attr_get;
+		sql_attr_get = "SELECT val FROM tbl_attr"
+		               "   WHERE key=@arg_key;";
+		if(sqlite3_prepare_v2(self->db, sql_attr_get, -1,
+		                      &self->stmt_attr_get[i],
 		                      NULL) != SQLITE_OK)
 		{
 			LOGE("sqlite3_prepare_v2: %s",
 			     sqlite3_errmsg(self->db));
-			goto fail_prepare_get;
+			goto fail_prepare_attr_get;
 		}
 	}
 
-	const char* sql_set = "REPLACE INTO tbl_attr (key, val)"
-	                      "   VALUES (@arg_key, @arg_val);";
-	if(sqlite3_prepare_v2(self->db, sql_set, -1,
-	                      &self->stmt_set,
+	const char* sql_attr_set = "REPLACE INTO tbl_attr (key, val)"
+	                           "   VALUES (@arg_key, @arg_val);";
+	if(sqlite3_prepare_v2(self->db, sql_attr_set, -1,
+	                      &self->stmt_attr_set,
 	                      NULL) != SQLITE_OK)
 	{
 		LOGE("sqlite3_prepare_v2: %s",
 		     sqlite3_errmsg(self->db));
-		goto fail_prepare_set;
+		goto fail_prepare_attr_set;
 	}
 
-	const char* sql_clear;
-	sql_clear = "DELETE FROM tbl_attr"
-	            "   WHERE key=@arg_key;";
-	if(sqlite3_prepare_v2(self->db, sql_clear, -1,
-	                      &self->stmt_clear,
+	const char* sql_attr_clr;
+	sql_attr_clr = "DELETE FROM tbl_attr"
+	               "   WHERE key=@arg_key;";
+	if(sqlite3_prepare_v2(self->db, sql_attr_clr, -1,
+	                      &self->stmt_attr_clr,
 	                      NULL) != SQLITE_OK)
 	{
 		LOGE("sqlite3_prepare_v2: %s",
 		     sqlite3_errmsg(self->db));
-		goto fail_prepare_clear;
+		goto fail_prepare_attr_clr;
 	}
 
-	const char* sql_list;
-	sql_list = "SELECT name, length(blob) FROM tbl_blob;";
-	if(sqlite3_prepare_v2(self->db, sql_list, -1,
-	                      &self->stmt_list,
+	const char* sql_blob_list;
+	sql_blob_list = "SELECT name, length(blob) FROM tbl_blob;";
+	if(sqlite3_prepare_v2(self->db, sql_blob_list, -1,
+	                      &self->stmt_blob_list,
 	                      NULL) != SQLITE_OK)
-	if(self->stmt_list == NULL)
+	if(self->stmt_blob_list == NULL)
 	{
 		LOGE("sqlite3_prepare_v2: %s",
 		     sqlite3_errmsg(self->db));
-		goto fail_prepare_list;
+		goto fail_prepare_blob_list;
 	}
 
-	self->stmt_load = (sqlite3_stmt**)
-	                  CALLOC(nth, sizeof(sqlite3_stmt*));
-	if(self->stmt_load == NULL)
+	self->stmt_blob_get = (sqlite3_stmt**)
+	                      CALLOC(nth, sizeof(sqlite3_stmt*));
+	if(self->stmt_blob_get == NULL)
 	{
 		LOGE("CALLOC failed");
-		goto fail_alloc_load;
+		goto fail_alloc_blob_get;
 	}
 
 	int j;
 	for(j = 0; j < nth; ++j)
 	{
-		const char* sql_load;
-		sql_load = "SELECT blob FROM tbl_blob"
-		           "   WHERE name=@arg_name;";
-		if(sqlite3_prepare_v2(self->db, sql_load, -1,
-		                      &self->stmt_load[j],
+		const char* sql_blob_get;
+		sql_blob_get = "SELECT blob FROM tbl_blob"
+		               "   WHERE name=@arg_name;";
+		if(sqlite3_prepare_v2(self->db, sql_blob_get, -1,
+		                      &self->stmt_blob_get[j],
 		                      NULL) != SQLITE_OK)
 		{
 			LOGE("sqlite3_prepare_v2: %s",
 			     sqlite3_errmsg(self->db));
-			goto fail_prepare_load;
+			goto fail_prepare_blob_get;
 		}
 	}
 
-	const char* sql_store = "REPLACE INTO tbl_blob (name, blob)"
-	                        "   VALUES (@arg_name, @arg_blob);";
-	if(sqlite3_prepare_v2(self->db, sql_store, -1,
-	                      &self->stmt_store,
+	const char* sql_blob_set = "REPLACE INTO tbl_blob (name, blob)"
+	                           "   VALUES (@arg_name, @arg_blob);";
+	if(sqlite3_prepare_v2(self->db, sql_blob_set, -1,
+	                      &self->stmt_blob_set,
 	                      NULL) != SQLITE_OK)
 	{
 		LOGE("sqlite3_prepare_v2: %s",
 		     sqlite3_errmsg(self->db));
-		goto fail_prepare_store;
+		goto fail_prepare_blob_set;
 	}
 
-	const char* sql_remove;
-	sql_remove = "DELETE FROM tbl_blob"
-	            "   WHERE name=@arg_name;";
-	if(sqlite3_prepare_v2(self->db, sql_remove, -1,
-	                      &self->stmt_remove,
+	const char* sql_blob_clr;
+	sql_blob_clr = "DELETE FROM tbl_blob"
+	               "   WHERE name=@arg_name;";
+	if(sqlite3_prepare_v2(self->db, sql_blob_clr, -1,
+	                      &self->stmt_blob_clr,
 	                      NULL) != SQLITE_OK)
 	{
 		LOGE("sqlite3_prepare_v2: %s",
 		     sqlite3_errmsg(self->db));
-		goto fail_prepare_remove;
+		goto fail_prepare_blob_clr;
 	}
 
-	self->idx_get_key     = sqlite3_bind_parameter_index(self->stmt_get[0],
-	                                                     "@arg_key");
-	self->idx_set_key     = sqlite3_bind_parameter_index(self->stmt_set,
-	                                                     "@arg_key");
-	self->idx_set_val     = sqlite3_bind_parameter_index(self->stmt_set,
-	                                                    "@arg_val");
-	self->idx_clear_key   = sqlite3_bind_parameter_index(self->stmt_clear,
-	                                                    "@arg_key");
-	self->idx_load_name   = sqlite3_bind_parameter_index(self->stmt_load[0],
-	                                                     "@arg_name");
-	self->idx_store_name  = sqlite3_bind_parameter_index(self->stmt_store,
-	                                                     "@arg_name");
-	self->idx_store_blob  = sqlite3_bind_parameter_index(self->stmt_store,
-	                                                    "@arg_blob");
-	self->idx_remove_name = sqlite3_bind_parameter_index(self->stmt_remove,
-	                                                    "@arg_name");
+	self->idx_attr_get_key  = sqlite3_bind_parameter_index(self->stmt_attr_get[0],
+	                                                       "@arg_key");
+	self->idx_attr_set_key  = sqlite3_bind_parameter_index(self->stmt_attr_set,
+	                                                       "@arg_key");
+	self->idx_attr_set_val  = sqlite3_bind_parameter_index(self->stmt_attr_set,
+	                                                       "@arg_val");
+	self->idx_attr_clr_key  = sqlite3_bind_parameter_index(self->stmt_attr_clr,
+	                                                       "@arg_key");
+	self->idx_blob_get_name = sqlite3_bind_parameter_index(self->stmt_blob_get[0],
+	                                                       "@arg_name");
+	self->idx_blob_set_name = sqlite3_bind_parameter_index(self->stmt_blob_set,
+	                                                       "@arg_name");
+	self->idx_blob_set_blob = sqlite3_bind_parameter_index(self->stmt_blob_set,
+	                                                       "@arg_blob");
+	self->idx_blob_clr_name = sqlite3_bind_parameter_index(self->stmt_blob_clr,
+	                                                       "@arg_name");
 
 	if(pthread_mutex_init(&self->mutex, NULL) != 0)
 	{
@@ -484,36 +484,36 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 	fail_cond:
 		pthread_mutex_destroy(&self->mutex);
 	fail_mutex:
-		sqlite3_finalize(self->stmt_remove);
-	fail_prepare_remove:
-		sqlite3_finalize(self->stmt_store);
-	fail_prepare_store:
-	fail_prepare_load:
+		sqlite3_finalize(self->stmt_blob_clr);
+	fail_prepare_blob_clr:
+		sqlite3_finalize(self->stmt_blob_set);
+	fail_prepare_blob_set:
+	fail_prepare_blob_get:
 	{
 		for(t = 0; t < j; ++t)
 		{
-			sqlite3_finalize(self->stmt_load[t]);
+			sqlite3_finalize(self->stmt_blob_get[t]);
 		}
-		FREE(self->stmt_load);
+		FREE(self->stmt_blob_get);
 	}
-	fail_alloc_load:
-		sqlite3_finalize(self->stmt_list);
-	fail_prepare_list:
-		sqlite3_finalize(self->stmt_clear);
-	fail_prepare_clear:
-		sqlite3_finalize(self->stmt_set);
-	fail_prepare_set:
-	fail_prepare_get:
+	fail_alloc_blob_get:
+		sqlite3_finalize(self->stmt_blob_list);
+	fail_prepare_blob_list:
+		sqlite3_finalize(self->stmt_attr_clr);
+	fail_prepare_attr_clr:
+		sqlite3_finalize(self->stmt_attr_set);
+	fail_prepare_attr_set:
+	fail_prepare_attr_get:
 	{
 		for(t = 0; t < i; ++t)
 		{
-			sqlite3_finalize(self->stmt_get[t]);
+			sqlite3_finalize(self->stmt_attr_get[t]);
 		}
-		FREE(self->stmt_get);
+		FREE(self->stmt_attr_get);
 	}
-	fail_alloc_get:
-		sqlite3_finalize(self->stmt_attr);
-	fail_prepare_attr:
+	fail_alloc_attr_get:
+		sqlite3_finalize(self->stmt_attr_list);
+	fail_prepare_attr_list:
 		sqlite3_finalize(self->stmt_end);
 	fail_prepare_end:
 		sqlite3_finalize(self->stmt_begin);
@@ -546,27 +546,27 @@ void bfs_file_close(bfs_file_t** _self)
 
 		pthread_cond_destroy(&self->cond);
 		pthread_mutex_destroy(&self->mutex);
-		sqlite3_finalize(self->stmt_remove);
-		sqlite3_finalize(self->stmt_store);
+		sqlite3_finalize(self->stmt_blob_clr);
+		sqlite3_finalize(self->stmt_blob_set);
 
 		int i;
 		for(i = 0; i < self->nth; ++i)
 		{
-			sqlite3_finalize(self->stmt_load[i]);
+			sqlite3_finalize(self->stmt_blob_get[i]);
 		}
-		FREE(self->stmt_load);
+		FREE(self->stmt_blob_get);
 
-		sqlite3_finalize(self->stmt_list);
-		sqlite3_finalize(self->stmt_clear);
-		sqlite3_finalize(self->stmt_set);
+		sqlite3_finalize(self->stmt_blob_list);
+		sqlite3_finalize(self->stmt_attr_clr);
+		sqlite3_finalize(self->stmt_attr_set);
 
 		for(i = 0; i < self->nth; ++i)
 		{
-			sqlite3_finalize(self->stmt_get[i]);
+			sqlite3_finalize(self->stmt_attr_get[i]);
 		}
-		FREE(self->stmt_get);
+		FREE(self->stmt_attr_get);
 
-		sqlite3_finalize(self->stmt_attr);
+		sqlite3_finalize(self->stmt_attr_list);
 		sqlite3_finalize(self->stmt_end);
 		sqlite3_finalize(self->stmt_begin);
 
@@ -579,8 +579,8 @@ void bfs_file_close(bfs_file_t** _self)
 	}
 }
 
-int bfs_file_attr(bfs_file_t* self, void* priv,
-                  bfs_attr_fn attr_fn)
+int bfs_file_attrList(bfs_file_t* self, void* priv,
+                      bfs_attr_fn attr_fn)
 {
 	// priv may be NULL
 	ASSERT(self);
@@ -595,7 +595,7 @@ int bfs_file_attr(bfs_file_t* self, void* priv,
 	bfs_file_lockExclusive(self);
 
 	int           ret  = 1;
-	sqlite3_stmt* stmt = self->stmt_attr;
+	sqlite3_stmt* stmt = self->stmt_attr_list;
 	while(sqlite3_step(stmt) == SQLITE_ROW)
 	{
 		const char* key;
@@ -615,9 +615,9 @@ int bfs_file_attr(bfs_file_t* self, void* priv,
 	return ret;
 }
 
-int bfs_file_get(bfs_file_t* self, int tid,
-                 const char* key,
-                 size_t size, char* val)
+int bfs_file_attrGet(bfs_file_t* self, int tid,
+                     const char* key,
+                     size_t size, char* val)
 {
 	ASSERT(self);
 	ASSERT(key);
@@ -633,8 +633,8 @@ int bfs_file_get(bfs_file_t* self, int tid,
 	bfs_file_lockRead(self);
 
 	int           ret  = 0;
-	int           idx  = self->idx_get_key;
-	sqlite3_stmt* stmt = self->stmt_get[tid];
+	int           idx  = self->idx_attr_get_key;
+	sqlite3_stmt* stmt = self->stmt_attr_get[tid];
 	if(sqlite3_bind_text(stmt, idx, key, -1,
 	                     SQLITE_TRANSIENT) != SQLITE_OK)
 	{
@@ -668,8 +668,8 @@ int bfs_file_get(bfs_file_t* self, int tid,
 	return ret;
 }
 
-int bfs_file_set(bfs_file_t* self, const char* key,
-                 const char* val)
+int bfs_file_attrSet(bfs_file_t* self, const char* key,
+                     const char* val)
 {
 	// val may be NULL
 	ASSERT(self);
@@ -687,9 +687,9 @@ int bfs_file_set(bfs_file_t* self, const char* key,
 	sqlite3_stmt* stmt;
 	if(val)
 	{
-		idx_key = self->idx_set_key;
-		idx_val = self->idx_set_val;
-		stmt    = self->stmt_set;
+		idx_key = self->idx_attr_set_key;
+		idx_val = self->idx_attr_set_val;
+		stmt    = self->stmt_attr_set;
 		if((sqlite3_bind_text(stmt, idx_key, key, -1,
 		                      SQLITE_TRANSIENT) != SQLITE_OK) ||
 		   (sqlite3_bind_text(stmt, idx_val, val, -1,
@@ -702,8 +702,8 @@ int bfs_file_set(bfs_file_t* self, const char* key,
 	}
 	else
 	{
-		idx_key = self->idx_set_key;
-		stmt    = self->stmt_clear;
+		idx_key = self->idx_attr_clr_key;
+		stmt    = self->stmt_attr_clr;
 		if(sqlite3_bind_text(stmt, idx_key, key, -1,
 		                     SQLITE_TRANSIENT) != SQLITE_OK)
 		{
@@ -730,12 +730,12 @@ int bfs_file_set(bfs_file_t* self, const char* key,
 	return ret;
 }
 
-int bfs_file_list(bfs_file_t* self, void* priv,
-                  bfs_list_fn list_fn)
+int bfs_file_blobList(bfs_file_t* self, void* priv,
+                      bfs_blob_fn blob_fn)
 {
 	// priv may be NULL
 	ASSERT(self);
-	ASSERT(list_fn);
+	ASSERT(blob_fn);
 
 	if(self->mode == BFS_MODE_STREAM)
 	{
@@ -746,14 +746,14 @@ int bfs_file_list(bfs_file_t* self, void* priv,
 	bfs_file_lockExclusive(self);
 
 	int           ret  = 1;
-	sqlite3_stmt* stmt = self->stmt_list;
+	sqlite3_stmt* stmt = self->stmt_blob_list;
 	while(sqlite3_step(stmt) == SQLITE_ROW)
 	{
 		size_t      size;
 		const char* name;
 		name = (const char*) sqlite3_column_text(stmt, 0);
 		size = (size_t) sqlite3_column_int(stmt, 1);
-		ret &= (*list_fn)(priv, name, size);
+		ret &= (*blob_fn)(priv, name, size);
 	}
 
 	if(sqlite3_reset(stmt) != SQLITE_OK)
@@ -766,9 +766,9 @@ int bfs_file_list(bfs_file_t* self, void* priv,
 	return ret;
 }
 
-int bfs_file_load(bfs_file_t* self, int tid,
-                  const char* name,
-                  size_t* _size, void** _data)
+int bfs_file_blobGet(bfs_file_t* self, int tid,
+                     const char* name,
+                     size_t* _size, void** _data)
 {
 	ASSERT(self);
 	ASSERT(name);
@@ -786,8 +786,8 @@ int bfs_file_load(bfs_file_t* self, int tid,
 	bfs_file_lockRead(self);
 
 	int           ret  = 0;
-	int           idx  = self->idx_load_name;
-	sqlite3_stmt* stmt = self->stmt_load[tid];
+	int           idx  = self->idx_blob_get_name;
+	sqlite3_stmt* stmt = self->stmt_blob_get[tid];
 	if(sqlite3_bind_text(stmt, idx, name, -1,
 	                     SQLITE_TRANSIENT) != SQLITE_OK)
 	{
@@ -836,8 +836,8 @@ int bfs_file_load(bfs_file_t* self, int tid,
 	return ret;
 }
 
-int bfs_file_store(bfs_file_t* self, const char* name,
-                   size_t size, const void* data)
+int bfs_file_blobSet(bfs_file_t* self, const char* name,
+                     size_t size, const void* data)
 {
 	// data may be NULL
 	ASSERT(self);
@@ -855,9 +855,9 @@ int bfs_file_store(bfs_file_t* self, const char* name,
 	sqlite3_stmt* stmt;
 	if(data)
 	{
-		idx_name = self->idx_store_name;
-		idx_blob = self->idx_store_blob;
-		stmt     = self->stmt_store;
+		idx_name = self->idx_blob_set_name;
+		idx_blob = self->idx_blob_set_blob;
+		stmt     = self->stmt_blob_set;
 		if((sqlite3_bind_text(stmt, idx_name, name, -1,
 		                      SQLITE_TRANSIENT) != SQLITE_OK) ||
 		   (sqlite3_bind_blob(stmt, idx_blob,
@@ -871,8 +871,8 @@ int bfs_file_store(bfs_file_t* self, const char* name,
 	}
 	else
 	{
-		idx_name = self->idx_remove_name;
-		stmt     = self->stmt_remove;
+		idx_name = self->idx_blob_clr_name;
+		stmt     = self->stmt_blob_clr;
 		if(sqlite3_bind_text(stmt, idx_name, name, -1,
 		                     SQLITE_TRANSIENT) != SQLITE_OK)
 		{
