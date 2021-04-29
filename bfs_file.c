@@ -825,7 +825,6 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
 	ASSERT(name);
 	ASSERT(_size);
 	ASSERT(_data);
-	ASSERT(*_data == NULL);
 
 	// allow return success with empty data
 	*_size = 0;
@@ -853,22 +852,51 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
 	if(step == SQLITE_ROW)
 	{
 		int         size = 0;
-		const void* data = NULL;
+		const void* blob = NULL;
+		void*       data = *_data;
 		size = sqlite3_column_bytes(stmt, 0);
-		data = sqlite3_column_blob(stmt, 0);
-		if(size && data)
+		blob = sqlite3_column_blob(stmt, 0);
+		if((size == 0) || (blob == NULL))
 		{
-			*_data = CALLOC(1, size);
-			if(*_data)
+			// empty data
+		}
+		else if(data == NULL)
+		{
+			// allocate data buffer
+			data = CALLOC(1, size);
+			if(data)
 			{
-				memcpy(*_data, data, size);
+				memcpy(data, blob, size);
 				*_size = size;
+				*_data = data;
 			}
 			else
 			{
 				LOGE("CALLOC failed");
 				ret = 0;
 			}
+		}
+		else if(MEMSIZE(data) < size)
+		{
+			// grow data buffer
+			data = REALLOC(*_data, size);
+			if(data)
+			{
+				memcpy(data, blob, size);
+				*_size = size;
+				*_data = data;
+			}
+			else
+			{
+				LOGE("REALLOC failed");
+				ret = 0;
+			}
+		}
+		else
+		{
+			// reuse data buffer
+			memcpy(data, blob, size);
+			*_size = size;
 		}
 	}
 	else if(step != SQLITE_DONE)
