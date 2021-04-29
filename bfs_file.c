@@ -594,15 +594,23 @@ int bfs_file_attrList(bfs_file_t* self, void* priv,
 
 	bfs_file_lockExclusive(self);
 
+	const char*   key;
+	const char*   val;
 	int           ret  = 1;
 	sqlite3_stmt* stmt = self->stmt_attr_list;
-	while(sqlite3_step(stmt) == SQLITE_ROW)
+	int           step = sqlite3_step(stmt);
+	while(step == SQLITE_ROW)
 	{
-		const char* key;
-		const char* val;
-		key = (const char*) sqlite3_column_text(stmt, 0);
-		val = (const char*) sqlite3_column_text(stmt, 1);
+		key  = (const char*) sqlite3_column_text(stmt, 0);
+		val  = (const char*) sqlite3_column_text(stmt, 1);
 		ret &= (*attr_fn)(priv, key, val);
+		step = sqlite3_step(stmt);
+	}
+
+	if(step != SQLITE_DONE)
+	{
+		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		ret = 0;
 	}
 
 	if(sqlite3_reset(stmt) != SQLITE_OK)
@@ -624,6 +632,9 @@ int bfs_file_attrGet(bfs_file_t* self, int tid,
 	ASSERT(size > 0);
 	ASSERT(val);
 
+	// allow return success with empty data
+	val[0] = '\0';
+
 	if(self->mode == BFS_MODE_STREAM)
 	{
 		LOGE("invalid mode");
@@ -632,7 +643,6 @@ int bfs_file_attrGet(bfs_file_t* self, int tid,
 
 	bfs_file_lockRead(self);
 
-	int           ret  = 0;
 	int           idx  = self->idx_attr_get_key;
 	sqlite3_stmt* stmt = self->stmt_attr_get[tid];
 	if(sqlite3_bind_text(stmt, idx, key, -1,
@@ -643,19 +653,21 @@ int bfs_file_attrGet(bfs_file_t* self, int tid,
 		return 0;
 	}
 
-	if(sqlite3_step(stmt) == SQLITE_ROW)
+	int ret  = 1;
+	int step = sqlite3_step(stmt);
+	if(step == SQLITE_ROW)
 	{
 		const char* tmp;
 		tmp = (const char*) sqlite3_column_text(stmt, 0);
 		if(tmp)
 		{
 			snprintf(val, size, "%s", tmp);
-			ret = 1;
 		}
 	}
-	else
+	else if(step != SQLITE_DONE)
 	{
-		LOGE("sqlite3_step: msg=%s", sqlite3_errmsg(self->db));
+		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		ret = 0;
 	}
 
 	if(sqlite3_reset(stmt) != SQLITE_OK)
@@ -778,13 +790,21 @@ int bfs_file_blobList(bfs_file_t* self, void* priv,
 
 	int           ret  = 1;
 	sqlite3_stmt* stmt = self->stmt_blob_list;
-	while(sqlite3_step(stmt) == SQLITE_ROW)
+	int           step = sqlite3_step(stmt);
+	while(step == SQLITE_ROW)
 	{
 		size_t      size;
 		const char* name;
 		name = (const char*) sqlite3_column_text(stmt, 0);
 		size = (size_t) sqlite3_column_int(stmt, 1);
 		ret &= (*blob_fn)(priv, name, size);
+		step = sqlite3_step(stmt);
+	}
+
+	if(step != SQLITE_DONE)
+	{
+		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		ret = 0;
 	}
 
 	if(sqlite3_reset(stmt) != SQLITE_OK)
@@ -805,8 +825,10 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
 	ASSERT(name);
 	ASSERT(_size);
 	ASSERT(_data);
-	ASSERT(*_size == 0);
 	ASSERT(*_data == NULL);
+
+	// allow return success with empty data
+	*_size = 0;
 
 	if(self->mode == BFS_MODE_STREAM)
 	{
@@ -816,7 +838,6 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
 
 	bfs_file_lockRead(self);
 
-	int           ret  = 0;
 	int           idx  = self->idx_blob_get_name;
 	sqlite3_stmt* stmt = self->stmt_blob_get[tid];
 	if(sqlite3_bind_text(stmt, idx, name, -1,
@@ -827,7 +848,9 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
 		return 0;
 	}
 
-	if(sqlite3_step(stmt) == SQLITE_ROW)
+	int ret  = 1;
+	int step = sqlite3_step(stmt);
+	if(step == SQLITE_ROW)
 	{
 		int         size = 0;
 		const void* data = NULL;
@@ -840,21 +863,18 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
 			{
 				memcpy(*_data, data, size);
 				*_size = size;
-				ret = 1;
 			}
 			else
 			{
 				LOGE("CALLOC failed");
+				ret = 0;
 			}
 		}
-		else
-		{
-			LOGE("invalid size=%i, data=%p", size, data);
-		}
 	}
-	else
+	else if(step != SQLITE_DONE)
 	{
-		LOGE("sqlite3_step: msg=%s", sqlite3_errmsg(self->db));
+		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		ret = 0;
 	}
 
 	if(sqlite3_reset(stmt) != SQLITE_OK)
