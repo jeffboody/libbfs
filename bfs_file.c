@@ -98,7 +98,38 @@ static void bfs_file_unlockExclusive(bfs_file_t* self)
 }
 
 static int
-bfs_file_initialize(bfs_file_t* self)
+bfs_file_createIndices(bfs_file_t* self)
+{
+	ASSERT(self);
+
+	const char* sql_init[] =
+	{
+		"CREATE UNIQUE INDEX idx_attr_key"
+		"   ON tbl_attr (key);",
+		"CREATE UNIQUE INDEX idx_blob_name"
+		"   ON tbl_blob (name);",
+		NULL
+	};
+
+	// init sqlite3
+	int i = 0;
+	while(sql_init[i])
+	{
+		if(sqlite3_exec(self->db, sql_init[i], NULL, NULL,
+		                NULL) != SQLITE_OK)
+		{
+			LOGE("sqlite3_exec(%i): %s",
+			     i, sqlite3_errmsg(self->db));
+			return 0;
+		}
+		++i;
+	}
+
+	return 1;
+}
+
+static int
+bfs_file_createTables(bfs_file_t* self)
 {
 	ASSERT(self);
 
@@ -110,15 +141,11 @@ bfs_file_initialize(bfs_file_t* self)
 		"   key TEXT NOT NULL,"
 		"   val TEXT"
 		");",
-		"CREATE UNIQUE INDEX idx_attr_key"
-		"   ON tbl_attr (key);",
 		"CREATE TABLE tbl_blob"
 		"("
 		"   name TEXT NOT NULL,"
 		"   blob BLOB"
 		");",
-		"CREATE UNIQUE INDEX idx_blob_name"
-		"   ON tbl_blob (name);",
 		NULL
 	};
 
@@ -302,7 +329,16 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 
 	if(flags & SQLITE_OPEN_CREATE)
 	{
-		if(bfs_file_initialize(self) == 0)
+		if(bfs_file_createTables(self) == 0)
+		{
+			goto fail_initialize;
+		}
+
+		if(mode == BFS_MODE_STREAM)
+		{
+			// index creation is faster at close
+		}
+		else if(bfs_file_createIndices(self) == 0)
 		{
 			goto fail_initialize;
 		}
@@ -542,6 +578,11 @@ void bfs_file_close(bfs_file_t** _self)
 		if(bfs_file_endTransaction(self) == 0)
 		{
 			// ignore
+		}
+
+		if(self->mode == BFS_MODE_STREAM)
+		{
+			bfs_file_createIndices(self);
 		}
 
 		pthread_cond_destroy(&self->cond);
