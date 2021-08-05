@@ -135,7 +135,6 @@ bfs_file_createTables(bfs_file_t* self)
 
 	const char* sql_init[] =
 	{
-		"PRAGMA temp_store_directory = '.';",
 		"CREATE TABLE tbl_attr"
 		"("
 		"   key TEXT NOT NULL,"
