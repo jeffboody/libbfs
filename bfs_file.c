@@ -364,8 +364,7 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 	}
 
 	const char* sql_attr_list;
-	sql_attr_list = "SELECT key, val FROM tbl_attr"
-	                "   WHERE key=@arg_key;";
+	sql_attr_list = "SELECT key, val FROM tbl_attr;";
 	if(sqlite3_prepare_v2(self->db, sql_attr_list, -1,
 	                      &self->stmt_attr_list,
 	                      NULL) != SQLITE_OK)
