@@ -54,8 +54,8 @@ static void usage(const char* argv0)
 	LOGE("   attrSet KEY VAL");
 	LOGE("   attrClr KEY");
 	LOGE("   blobList");
-	LOGE("   blobGet NAME");
-	LOGE("   blobSet NAME");
+	LOGE("   blobGet NAME [OUTPUT]");
+	LOGE("   blobSet NAME [INPUT]");
 	LOGE("   blobClr NAME");
 }
 
@@ -262,7 +262,19 @@ int main(int argc, char** argv)
 	}
 	else if(strcmp(cmd, "blobGet") == 0)
 	{
-		if(argc != 4)
+		char* name   = argv[3];
+		char* output = NULL;
+		if(argc == 5)
+		{
+			name   = argv[3];
+			output = argv[4];
+		}
+		else if(argc == 4)
+		{
+			name   = argv[3];
+			output = name;
+		}
+		else
 		{
 			usage(arg0);
 			goto fail_shutdown;
@@ -276,20 +288,19 @@ int main(int argc, char** argv)
 
 		size_t size = 0;
 		void*  data = NULL;
-		char*  name = argv[3];
 		if((bfs_file_blobGet(bfs, 0, name, &size, &data) == 0) ||
 		   (data == NULL))
 		{
 			goto fail_cmd;
 		}
 
-		if(bfs_mkdir(name) == 0)
+		if(bfs_mkdir(output) == 0)
 		{
 			FREE(data);
 			goto fail_cmd;
 		}
 
-		FILE* f = fopen(name, "w");
+		FILE* f = fopen(output, "w");
 		if(f == NULL)
 		{
 			LOGE("fopen failed");
@@ -310,7 +321,19 @@ int main(int argc, char** argv)
 	}
 	else if(strcmp(cmd, "blobSet") == 0)
 	{
-		if(argc != 4)
+		char* name  = argv[3];
+		char* input = NULL;
+		if(argc == 5)
+		{
+			name  = argv[3];
+			input = argv[4];
+		}
+		else if(argc == 4)
+		{
+			name  = argv[3];
+			input = name;
+		}
+		else
 		{
 			usage(arg0);
 			goto fail_shutdown;
@@ -322,8 +345,7 @@ int main(int argc, char** argv)
 			goto fail_shutdown;
 		}
 
-		char* name = argv[3];
-		FILE* f    = fopen(name, "r");
+		FILE* f = fopen(input, "r");
 		if(f == NULL)
 		{
 			LOGE("fopen failed");
