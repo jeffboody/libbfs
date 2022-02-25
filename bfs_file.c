@@ -915,7 +915,7 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
 				ret = 0;
 			}
 		}
-		else if(MEMSIZE(data) < size)
+		else if(MEMSIZEPTR(data) < size)
 		{
 			// grow data buffer
 			data = REALLOC(*_data, size);
