@@ -24,9 +24,9 @@
 #ifndef bfs_file_H
 #define bfs_file_H
 
-#include <pthread.h>
-
-#include "../libsqlite3/sqlite3.h"
+/*
+ * callback functions
+ */
 
 typedef int (*bfs_attr_fn)(void* priv,
                            const char* key,
@@ -35,6 +35,10 @@ typedef int (*bfs_blob_fn)(void* priv,
                            const char* name,
                            size_t size);
 
+/*
+ * constants
+ */
+
 typedef enum
 {
 	BFS_MODE_RDONLY = 0,
@@ -42,42 +46,15 @@ typedef enum
 	BFS_MODE_STREAM = 2,
 } bfs_mode_e;
 
-typedef struct
-{
-	int        nth;
-	bfs_mode_e mode;
+/*
+ * opaque objects
+ */
 
-	sqlite3* db;
+typedef struct bfs_file_s bfs_file_t;
 
-	// sqlite3 statements
-	int            batch_size;
-	sqlite3_stmt*  stmt_begin;
-	sqlite3_stmt*  stmt_end;
-	sqlite3_stmt*  stmt_attr_list;
-	sqlite3_stmt** stmt_attr_get;
-	sqlite3_stmt*  stmt_attr_set;
-	sqlite3_stmt*  stmt_attr_clr;
-	sqlite3_stmt*  stmt_blob_list;
-	sqlite3_stmt** stmt_blob_get;
-	sqlite3_stmt*  stmt_blob_set;
-	sqlite3_stmt*  stmt_blob_clr;
-
-	// sqlite3 indices
-	int idx_attr_get_key;
-	int idx_attr_set_key;
-	int idx_attr_set_val;
-	int idx_attr_clr_key;
-	int idx_blob_get_name;
-	int idx_blob_set_name;
-	int idx_blob_set_blob;
-	int idx_blob_clr_name;
-
-	// locking
-	pthread_mutex_t mutex;
-	pthread_cond_t  cond;
-	int             readers;
-	int             exclusive;
-} bfs_file_t;
+/*
+ * file API
+ */
 
 bfs_file_t* bfs_file_open(const char* fname,
                           int nth,

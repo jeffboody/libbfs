@@ -35,6 +35,43 @@
 
 #define BATCH_SIZE 10000
 
+typedef struct bfs_file_s
+{
+	int        nth;
+	bfs_mode_e mode;
+
+	sqlite3* db;
+
+	// sqlite3 statements
+	int            batch_size;
+	sqlite3_stmt*  stmt_begin;
+	sqlite3_stmt*  stmt_end;
+	sqlite3_stmt*  stmt_attr_list;
+	sqlite3_stmt** stmt_attr_get;
+	sqlite3_stmt*  stmt_attr_set;
+	sqlite3_stmt*  stmt_attr_clr;
+	sqlite3_stmt*  stmt_blob_list;
+	sqlite3_stmt** stmt_blob_get;
+	sqlite3_stmt*  stmt_blob_set;
+	sqlite3_stmt*  stmt_blob_clr;
+
+	// sqlite3 indices
+	int idx_attr_get_key;
+	int idx_attr_set_key;
+	int idx_attr_set_val;
+	int idx_attr_clr_key;
+	int idx_blob_get_name;
+	int idx_blob_set_name;
+	int idx_blob_set_blob;
+	int idx_blob_clr_name;
+
+	// locking
+	pthread_mutex_t mutex;
+	pthread_cond_t  cond;
+	int             readers;
+	int             exclusive;
+} bfs_file_t;
+
 /***********************************************************
 * private                                                  *
 ***********************************************************/

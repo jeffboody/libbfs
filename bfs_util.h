@@ -24,6 +24,10 @@
 #ifndef bfs_util_H
 #define bfs_util_H
 
+/*
+ * util API
+ */
+
 int  bfs_util_initialize(void);
 void bfs_util_shutdown(void);
 
