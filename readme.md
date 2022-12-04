@@ -62,6 +62,11 @@ performance.
 	                          bfs_mode_e mode);
 	void        bfs_file_close(bfs_file_t** _self);
 
+The bfs\_file\_flush() function may be used when streaming
+to manually flush outstanding writes.
+
+	int bfs_file_flush(bfs_file_t* self);
+
 The bfs\_file\_attrList() function may be used to list all
 attributes in the file via a callback function. The user
 must not call into the BFS library from the callback

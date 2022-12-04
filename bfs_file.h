@@ -60,6 +60,7 @@ bfs_file_t* bfs_file_open(const char* fname,
                           int nth,
                           bfs_mode_e mode);
 void        bfs_file_close(bfs_file_t** _self);
+int         bfs_file_flush(bfs_file_t* self);
 int         bfs_file_attrList(bfs_file_t* self,
                               void* priv,
                               bfs_attr_fn attr_fn);

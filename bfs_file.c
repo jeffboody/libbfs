@@ -655,6 +655,13 @@ void bfs_file_close(bfs_file_t** _self)
 	}
 }
 
+int bfs_file_flush(bfs_file_t* self)
+{
+	ASSERT(self);
+
+	return bfs_file_endTransaction(self);
+}
+
 int bfs_file_attrList(bfs_file_t* self, void* priv,
                       bfs_attr_fn attr_fn)
 {
