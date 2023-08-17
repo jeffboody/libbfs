@@ -303,7 +303,7 @@ int main(int argc, char** argv)
 		FILE* f = fopen(output, "w");
 		if(f == NULL)
 		{
-			LOGE("fopen failed");
+			LOGE("fopen %s failed", output);
 			FREE(data);
 			goto fail_cmd;
 		}
@@ -348,7 +348,7 @@ int main(int argc, char** argv)
 		FILE* f = fopen(input, "r");
 		if(f == NULL)
 		{
-			LOGE("fopen failed");
+			LOGE("fopen %s failed", input);
 			goto fail_cmd;
 		}
 
