@@ -904,10 +904,10 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
                      const char* name,
                      size_t* _size, void** _data)
 {
+	// _data may be NULL
 	ASSERT(self);
 	ASSERT(name);
 	ASSERT(_size);
-	ASSERT(_data);
 
 	// allow return success with empty data
 	*_size = 0;
@@ -934,51 +934,58 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
 	int step = sqlite3_step(stmt);
 	if(step == SQLITE_ROW)
 	{
-		int         size = 0;
-		const void* blob = NULL;
-		void*       data = *_data;
-		size = sqlite3_column_bytes(stmt, 0);
-		blob = sqlite3_column_blob(stmt, 0);
-		if((size == 0) || (blob == NULL))
+		int size = sqlite3_column_bytes(stmt, 0);
+		if(_data)
 		{
-			// empty data
-		}
-		else if(data == NULL)
-		{
-			// allocate data buffer
-			data = CALLOC(1, size);
-			if(data)
+			// get the size and data
+			void*       data = *_data;
+			const void* blob = sqlite3_column_blob(stmt, 0);
+			if((size == 0) || (blob == NULL))
 			{
-				memcpy(data, blob, size);
-				*_size = size;
-				*_data = data;
+				// empty data
+			}
+			else if(data == NULL)
+			{
+				// allocate data buffer
+				data = CALLOC(1, size);
+				if(data)
+				{
+					memcpy(data, blob, size);
+					*_size = size;
+					*_data = data;
+				}
+				else
+				{
+					LOGE("CALLOC failed");
+					ret = 0;
+				}
+			}
+			else if(MEMSIZEPTR(data) < size)
+			{
+				// grow data buffer
+				data = REALLOC(*_data, size);
+				if(data)
+				{
+					memcpy(data, blob, size);
+					*_size = size;
+					*_data = data;
+				}
+				else
+				{
+					LOGE("REALLOC failed");
+					ret = 0;
+				}
 			}
 			else
 			{
-				LOGE("CALLOC failed");
-				ret = 0;
-			}
-		}
-		else if(MEMSIZEPTR(data) < size)
-		{
-			// grow data buffer
-			data = REALLOC(*_data, size);
-			if(data)
-			{
+				// reuse data buffer
 				memcpy(data, blob, size);
 				*_size = size;
-				*_data = data;
-			}
-			else
-			{
-				LOGE("REALLOC failed");
-				ret = 0;
 			}
 		}
 		else
 		{
-			// reuse data buffer
-			memcpy(data, blob, size);
+			// get the size or existance
 			*_size = size;
 		}
 	}
