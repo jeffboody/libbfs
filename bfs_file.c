@@ -51,6 +51,7 @@ typedef struct bfs_file_s
 	sqlite3_stmt*  stmt_attr_set;
 	sqlite3_stmt*  stmt_attr_clr;
 	sqlite3_stmt*  stmt_blob_list;
+	sqlite3_stmt*  stmt_blob_like;
 	sqlite3_stmt** stmt_blob_get;
 	sqlite3_stmt*  stmt_blob_set;
 	sqlite3_stmt*  stmt_blob_clr;
@@ -60,6 +61,7 @@ typedef struct bfs_file_s
 	int idx_attr_set_key;
 	int idx_attr_set_val;
 	int idx_attr_clr_key;
+	int idx_blob_like_pat;
 	int idx_blob_get_name;
 	int idx_blob_set_name;
 	int idx_blob_set_blob;
@@ -471,6 +473,18 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 		goto fail_prepare_blob_list;
 	}
 
+	const char* sql_blob_like;
+	sql_blob_like = "SELECT name, length(blob) FROM tbl_blob WHERE name LIKE @arg_pat;";
+	if(sqlite3_prepare_v2(self->db, sql_blob_like, -1,
+	                      &self->stmt_blob_like,
+	                      NULL) != SQLITE_OK)
+	if(self->stmt_blob_like == NULL)
+	{
+		LOGE("sqlite3_prepare_v2: %s",
+		     sqlite3_errmsg(self->db));
+		goto fail_prepare_blob_like;
+	}
+
 	self->stmt_blob_get = (sqlite3_stmt**)
 	                      CALLOC(nth, sizeof(sqlite3_stmt*));
 	if(self->stmt_blob_get == NULL)
@@ -526,6 +540,8 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 	                                                       "@arg_val");
 	self->idx_attr_clr_key  = sqlite3_bind_parameter_index(self->stmt_attr_clr,
 	                                                       "@arg_key");
+	self->idx_blob_like_pat = sqlite3_bind_parameter_index(self->stmt_blob_like,
+	                                                       "@arg_pat");
 	self->idx_blob_get_name = sqlite3_bind_parameter_index(self->stmt_blob_get[0],
 	                                                       "@arg_name");
 	self->idx_blob_set_name = sqlite3_bind_parameter_index(self->stmt_blob_set,
@@ -568,6 +584,8 @@ bfs_file_open(const char* fname, int nth, bfs_mode_e mode)
 		FREE(self->stmt_blob_get);
 	}
 	fail_alloc_blob_get:
+		sqlite3_finalize(self->stmt_blob_like);
+	fail_prepare_blob_like:
 		sqlite3_finalize(self->stmt_blob_list);
 	fail_prepare_blob_list:
 		sqlite3_finalize(self->stmt_attr_clr);
@@ -632,6 +650,7 @@ void bfs_file_close(bfs_file_t** _self)
 		}
 		FREE(self->stmt_blob_get);
 
+		sqlite3_finalize(self->stmt_blob_like);
 		sqlite3_finalize(self->stmt_blob_list);
 		sqlite3_finalize(self->stmt_attr_clr);
 		sqlite3_finalize(self->stmt_attr_set);
@@ -857,9 +876,10 @@ int bfs_file_attrClr(bfs_file_t* self, const char* key)
 }
 
 int bfs_file_blobList(bfs_file_t* self, void* priv,
-                      bfs_blob_fn blob_fn)
+                      bfs_blob_fn blob_fn,
+                      const char* pattern)
 {
-	// priv may be NULL
+	// priv and pattern may be NULL
 	ASSERT(self);
 	ASSERT(blob_fn);
 
@@ -871,9 +891,23 @@ int bfs_file_blobList(bfs_file_t* self, void* priv,
 
 	bfs_file_lockExclusive(self);
 
-	int           ret  = 1;
 	sqlite3_stmt* stmt = self->stmt_blob_list;
-	int           step = sqlite3_step(stmt);
+	if(pattern)
+	{
+		stmt = self->stmt_blob_like;
+
+		int idx = self->idx_blob_like_pat;
+		if(sqlite3_bind_text(stmt, idx, pattern, -1,
+		                     SQLITE_TRANSIENT) != SQLITE_OK)
+		{
+			LOGE("sqlite3_bind_text failed");
+			bfs_file_unlockExclusive(self);
+			return 0;
+		}
+	}
+
+	int ret  = 1;
+	int step = sqlite3_step(stmt);
 	while(step == SQLITE_ROW)
 	{
 		size_t      size;

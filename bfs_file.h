@@ -76,7 +76,8 @@ int         bfs_file_attrClr(bfs_file_t* self,
                              const char* key);
 int         bfs_file_blobList(bfs_file_t* self,
                               void* priv,
-                              bfs_blob_fn blob_fn);
+                              bfs_blob_fn blob_fn,
+                              const char* pattern);
 int         bfs_file_blobGet(bfs_file_t* self,
                              int tid,
                              const char* name,

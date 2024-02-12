@@ -53,10 +53,14 @@ static void usage(const char* argv0)
 	LOGE("   attrGet KEY");
 	LOGE("   attrSet KEY VAL");
 	LOGE("   attrClr KEY");
-	LOGE("   blobList");
+	LOGE("   blobList [PATTERN]");
 	LOGE("   blobGet NAME [OUTPUT]");
 	LOGE("   blobSet NAME [INPUT]");
 	LOGE("   blobClr NAME");
+	LOGE("PATTERN:");
+	LOGE("   %% matches any sequence of zero or more characters");
+	LOGE("   _ matches any single character");
+	LOGE("   image/%%.jpg matches all images with '.jpg' extension");
 }
 
 static int bfs_mkdir(const char* fname)
@@ -187,6 +191,7 @@ int main(int argc, char** argv)
 			usage(arg0);
 			goto fail_shutdown;
 		}
+		char* key = argv[3];
 
 		bfs = bfs_file_open(fname, 1, BFS_MODE_RDONLY);
 		if(bfs == NULL)
@@ -194,7 +199,6 @@ int main(int argc, char** argv)
 			goto fail_shutdown;
 		}
 
-		char* key = argv[3];
 		char  val[256];
 		if(bfs_file_attrGet(bfs, 0, key, 256, val) == 0)
 		{
@@ -210,6 +214,8 @@ int main(int argc, char** argv)
 			usage(arg0);
 			goto fail_shutdown;
 		}
+		char* key = argv[3];
+		char* val = argv[4];
 
 		bfs = bfs_file_open(fname, 1, BFS_MODE_RDWR);
 		if(bfs == NULL)
@@ -217,8 +223,6 @@ int main(int argc, char** argv)
 			goto fail_shutdown;
 		}
 
-		char* key = argv[3];
-		char* val = argv[4];
 		if(bfs_file_attrSet(bfs, key, val) == 0)
 		{
 			goto fail_cmd;
@@ -231,6 +235,7 @@ int main(int argc, char** argv)
 			usage(arg0);
 			goto fail_shutdown;
 		}
+		char* key = argv[3];
 
 		bfs = bfs_file_open(fname, 1, BFS_MODE_RDWR);
 		if(bfs == NULL)
@@ -238,7 +243,6 @@ int main(int argc, char** argv)
 			goto fail_shutdown;
 		}
 
-		char* key = argv[3];
 		if(bfs_file_attrClr(bfs, key) == 0)
 		{
 			goto fail_cmd;
@@ -246,6 +250,17 @@ int main(int argc, char** argv)
 	}
 	else if(strcmp(cmd, "blobList") == 0)
 	{
+		char* pattern = NULL;
+		if(argc == 4)
+		{
+			pattern = argv[3];
+		}
+		else if(argc != 3)
+		{
+			usage(arg0);
+			goto fail_shutdown;
+		}
+
 		bfs = bfs_file_open(fname, 1, BFS_MODE_RDONLY);
 		if(bfs == NULL)
 		{
@@ -253,8 +268,8 @@ int main(int argc, char** argv)
 		}
 
 		size_t total = 0;
-		if(bfs_file_blobList(bfs, (void*) &total,
-		                     bfs_blob_list) == 0)
+		if(bfs_file_blobList(bfs, (void*) &total, bfs_blob_list,
+		                     pattern) == 0)
 		{
 			goto fail_cmd;
 		}
@@ -262,7 +277,7 @@ int main(int argc, char** argv)
 	}
 	else if(strcmp(cmd, "blobGet") == 0)
 	{
-		char* name   = argv[3];
+		char* name   = NULL;
 		char* output = NULL;
 		if(argc == 5)
 		{
@@ -321,7 +336,7 @@ int main(int argc, char** argv)
 	}
 	else if(strcmp(cmd, "blobSet") == 0)
 	{
-		char* name  = argv[3];
+		char* name  = NULL;
 		char* input = NULL;
 		if(argc == 5)
 		{
@@ -404,6 +419,7 @@ int main(int argc, char** argv)
 			usage(arg0);
 			goto fail_shutdown;
 		}
+		char* name = argv[3];
 
 		bfs = bfs_file_open(fname, 1, BFS_MODE_RDWR);
 		if(bfs == NULL)
@@ -411,7 +427,6 @@ int main(int argc, char** argv)
 			goto fail_shutdown;
 		}
 
-		char* name = argv[3];
 		if(bfs_file_blobClr(bfs, name) == 0)
 		{
 			goto fail_cmd;
