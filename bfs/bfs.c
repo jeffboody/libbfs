@@ -46,9 +46,11 @@ static void usage(const char* argv0)
 {
 	ASSERT(argv0);
 
+	// a single percent is required on the command line
+	// a double percent is required for logging
 	LOGE("BFS (Blob File System)");
 	LOGE("Usage: %s FILE COMMAND", argv0);
-	LOGE("Commands:");
+	LOGE("COMMAND:");
 	LOGE("   attrList");
 	LOGE("   attrGet KEY");
 	LOGE("   attrSet KEY VAL");

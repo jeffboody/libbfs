@@ -2,14 +2,13 @@ Blob File System
 ================
 
 BFS is a file system that is primarily intended to be used
-as a replacement for file I/O but can also be used to
-replace databases, zip files and XML files in some cases.
-The API is designed to be much simpler than any of these
-alternatives and can support two underlying file types
-which include named binary blobs and key value pairs. The
-file system is implemented as an SQLite database which is
-more robust, more portable and higher performance than file
-I/O.
+as a replacement for file I/O but may also be used to
+replace databases and zip files in some cases. The API is
+designed to be much simpler than any of these alternatives
+and can support two underlying file types which include
+named binary blobs and key value pairs. The file system is
+implemented as an SQLite database which is more robust, more
+portable and higher performance than file I/O.
 
 The following sections describe the library and command
 line tool.
@@ -109,15 +108,20 @@ value of an attribute.
 The bfs\_file\_blobList() function may be used to list all
 blobs in the file via a callback function. The user
 must not call into the BFS library from the callback
-function or a deadlock will occur.
+function or a deadlock will occur. An optional search
+pattern may be specified to filter blobs on their name. Two
+wildcards are supported including the percent and underscore
+characters. The percent character matches any sequence of
+zero or more characters while the underscore character
+matches a single character.
 
 	typedef int (*bfs_blob_fn)(void* priv,
 	                           const char* name,
 	                           size_t size);
 
-	int bfs_file_blobList(bfs_file_t* self,
-	                      void* priv,
-	                      bfs_blob_fn blob_fn);
+	int bfs_file_blobList(bfs_file_t* self, void* priv,
+	                      bfs_blob_fn blob_fn,
+	                      const char* pattern);
 
 The bfs\_file\_blobGet() function may be used to get the
 value of a blob. The tid parameter is the thread ID which
@@ -166,13 +170,21 @@ Key/Val Attributes
 
 Named Blobs
 
-	bfs FILE blobList
+	bfs FILE blobList [PATTERN]
 	bfs FILE blobGet NAME [OUTPUT]
 	bfs FILE blobSet NAME [INPUT]
 	bfs FILE blobClr NAME
 
 Blob file paths are typically derived from NAME but can
 also be overridden by file paths specified by INPUT/OUTPUT.
+
+An optional search PATTERN may be specified to filter blobs
+on their name. Two wildcards are supported including the
+percent and underscore characters. The percent character
+matches any sequence of zero or more characters while the
+underscore character matches a single character.
+
+	bfs FILE blobList image/%.jpg
 
 Dependencies
 ============
