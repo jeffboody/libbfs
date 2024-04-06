@@ -750,7 +750,7 @@ int bfs_file_attrGet(bfs_file_t* self, int tid,
 	if(sqlite3_bind_text(stmt, idx, key, -1,
 	                     SQLITE_TRANSIENT) != SQLITE_OK)
 	{
-		LOGE("sqlite3_bind_text failed");
+		LOGE("sqlite3_bind_text: key=%s", key);
 		bfs_file_unlockRead(self);
 		return 0;
 	}
@@ -768,7 +768,8 @@ int bfs_file_attrGet(bfs_file_t* self, int tid,
 	}
 	else if(step != SQLITE_DONE)
 	{
-		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		LOGE("sqlite3_step: key=%s, msg=%s",
+		     key, sqlite3_errmsg(self->db));
 		ret = 0;
 	}
 
@@ -812,7 +813,7 @@ int bfs_file_attrSet(bfs_file_t* self, const char* key,
 	   (sqlite3_bind_text(stmt, idx_val, val, -1,
 	                      SQLITE_TRANSIENT) != SQLITE_OK))
 	{
-		LOGE("sqlite3_bind_text failed");
+		LOGE("sqlite3_bind_text: key=%s, val=%s", key, val);
 		bfs_file_unlockExclusive(self);
 		return 0;
 	}
@@ -820,7 +821,8 @@ int bfs_file_attrSet(bfs_file_t* self, const char* key,
 	int ret = 1;
 	if(sqlite3_step(stmt) != SQLITE_DONE)
 	{
-		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		LOGE("sqlite3_step: key=%s, val=%s, msg=%s",
+		     key, val, sqlite3_errmsg(self->db));
 		ret = 0;
 	}
 
@@ -853,7 +855,7 @@ int bfs_file_attrClr(bfs_file_t* self, const char* key)
 	if(sqlite3_bind_text(stmt, idx_key, key, -1,
 	                     SQLITE_TRANSIENT) != SQLITE_OK)
 	{
-		LOGE("sqlite3_bind_text failed");
+		LOGE("sqlite3_bind_text: key=%s", key);
 		bfs_file_unlockExclusive(self);
 		return 0;
 	}
@@ -861,7 +863,8 @@ int bfs_file_attrClr(bfs_file_t* self, const char* key)
 	int ret = 1;
 	if(sqlite3_step(stmt) != SQLITE_DONE)
 	{
-		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		LOGE("sqlite3_step: key=%s, msg=%s",
+		     key, sqlite3_errmsg(self->db));
 		ret = 0;
 	}
 
@@ -900,7 +903,8 @@ int bfs_file_blobList(bfs_file_t* self, void* priv,
 		if(sqlite3_bind_text(stmt, idx, pattern, -1,
 		                     SQLITE_TRANSIENT) != SQLITE_OK)
 		{
-			LOGE("sqlite3_bind_text failed");
+			LOGE("sqlite3_bind_text: pattern=%s",
+			     pattern);
 			bfs_file_unlockExclusive(self);
 			return 0;
 		}
@@ -920,7 +924,8 @@ int bfs_file_blobList(bfs_file_t* self, void* priv,
 
 	if(step != SQLITE_DONE)
 	{
-		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		LOGE("sqlite3_step: pattern=%s, msg=%s",
+		     pattern, sqlite3_errmsg(self->db));
 		ret = 0;
 	}
 
@@ -959,7 +964,7 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
 	if(sqlite3_bind_text(stmt, idx, name, -1,
 	                     SQLITE_TRANSIENT) != SQLITE_OK)
 	{
-		LOGE("sqlite3_bind_text failed");
+		LOGE("sqlite3_bind_text: name=%s", name);
 		bfs_file_unlockRead(self);
 		return 0;
 	}
@@ -1025,7 +1030,8 @@ int bfs_file_blobGet(bfs_file_t* self, int tid,
 	}
 	else if(step != SQLITE_DONE)
 	{
-		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		LOGE("sqlite3_step: name=%s, msg=%s",
+		     name, sqlite3_errmsg(self->db));
 		ret = 0;
 	}
 
@@ -1070,7 +1076,8 @@ int bfs_file_blobSet(bfs_file_t* self, const char* name,
 	                      data, size,
 	                      SQLITE_TRANSIENT) != SQLITE_OK))
 	{
-		LOGE("sqlite3_bind_text/sqlite3_bind_blob failed");
+		LOGE("sqlite3_bind_text/sqlite3_bind_blob: name=%s, msg=%s",
+		     name, sqlite3_errmsg(self->db));
 		bfs_file_unlockExclusive(self);
 		return 0;
 	}
@@ -1078,7 +1085,8 @@ int bfs_file_blobSet(bfs_file_t* self, const char* name,
 	int ret = 1;
 	if(sqlite3_step(stmt) != SQLITE_DONE)
 	{
-		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		LOGE("sqlite3_step: name=%s, msg=%s",
+		     name, sqlite3_errmsg(self->db));
 		ret = 0;
 	}
 
@@ -1111,7 +1119,8 @@ int bfs_file_blobClr(bfs_file_t* self, const char* name)
 	if(sqlite3_bind_text(stmt, idx_name, name, -1,
 	                     SQLITE_TRANSIENT) != SQLITE_OK)
 	{
-		LOGE("sqlite3_bind_text: %s", sqlite3_errmsg(self->db));
+		LOGE("sqlite3_bind_text: name=%s, msg=%s",
+		     name, sqlite3_errmsg(self->db));
 		bfs_file_unlockExclusive(self);
 		return 0;
 	}
@@ -1119,7 +1128,8 @@ int bfs_file_blobClr(bfs_file_t* self, const char* name)
 	int ret = 1;
 	if(sqlite3_step(stmt) != SQLITE_DONE)
 	{
-		LOGE("sqlite3_step: %s", sqlite3_errmsg(self->db));
+		LOGE("sqlite3_step: name=%s, msg=%s",
+		     name, sqlite3_errmsg(self->db));
 		ret = 0;
 	}
 
