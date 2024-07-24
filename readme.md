@@ -1,53 +1,55 @@
 Blob File System
 ================
 
-BFS is a file system that is primarily intended to be used
-as a replacement for file I/O but may also be used to
-replace databases and zip files in some cases. The API is
-designed to be much simpler than any of these alternatives
-and can support two underlying file types which include
-named binary blobs and key value pairs. The file system is
-implemented as an SQLite database which is more robust, more
-portable and higher performance than file I/O.
-
-The following sections describe the library and command
-line tool.
+BFS simplifies data management by offering a key-value
+interface for both binary blobs and attributes. It serves
+as a versatile alternative to file I/O, potentially
+replacing databases and zip files in specific use cases. The
+underlying SQLite database ensures robustness, portability,
+and performance exceeding traditional file I/O. The
+attributes are intended to serve the same role as a
+traditional file header.
 
 BFS Library
 ===========
 
-Util
-----
+Initialization and Shutdown
+---------------------------
 
-Since BFS is implemented as an SQLite database, the user
-must explicitly initialize and shutdown the underlying
-SQLite library. Initialize must be called before any files
-are opened and shutdown must be called after all files are
-closed. If you are already using SQLite then these functions
-may not be needed.
+Unlike traditional file systems, BFS relies on SQLite for
+data storage. For proper functionality, users must
+explicitly initialize the library using
+bfs\_util\_initialize() before any file operations.
+Similarly, shutdown using bfs\_util\_shutdown() is required
+after all files are closed to ensure data integrity and
+resource management. If your application already uses and
+manages SQLite initialization, these calls might not be
+necessary for BFS.
+
+C Prototype
 
 	int  bfs_util_initialize(void);
 	void bfs_util_shutdown(void);
 
-File
-----
+Unified File Interface
+----------------------
 
-The BFS file system packages all named binary blobs and key
-value pairs into a single file that can be accessed through
-a bfs\_file\_t handle.
+BFS provides a single file interface (bfs\_file\_t) for
+working with both binary blobs and attributes within a file.
 
-The bfs\_file\_open() and bfs\_file\_close() functions are
-used to open/close a file. BFS files include thread
-synchronization which allow for a single writer and
-multiple readers. The nth parameter specifies how many
-threads may be used to simultaneously read entries from the
-file. The mode parameter specifies how the file will be
-used. The stream mode is designed to handle a special case
-where a a file needs to be initialized with many entries.
-Files opened for streaming are write only, internal
-threading synchronization is disabled and database
-transactions are batched together to optimize write
-performance.
+File Open/Close
+---------------
+
+BFS uses bfs\_file\_open() and bfs\_file\_close() to manage
+files. It supports thread-safety with one writer and
+multiple readers. When opening a file, you specify the
+allowed number of reader threads (nth). The mode parameter
+controls file usage. The stream mode is a write-only
+optimization for initializing files with many entries. It
+disables internal threading and uses batched database
+transactions to improve write performance.
+
+C Prototype
 
 	typedef enum
 	{
@@ -61,15 +63,28 @@ performance.
 	                          bfs_mode_e mode);
 	void        bfs_file_close(bfs_file_t** _self);
 
-The bfs\_file\_flush() function may be used when streaming
-to manually flush outstanding writes.
+Flushing Writes in Streaming Mode
+---------------------------------
+
+In streaming mode, bfs\_file\_flush() acts as a checkpoint,
+forcing all pending writes to disk. This ensures data
+durability in case of unexpected program termination (e.g.
+out-of-storage, power failure, or crash).
+
+C Prototype
 
 	int bfs_file_flush(bfs_file_t* self);
 
-The bfs\_file\_attrList() function may be used to list all
-attributes in the file via a callback function. The user
-must not call into the BFS library from the callback
-function or a deadlock will occur.
+Retrieving File Attributes
+--------------------------
+
+Use bfs\_file\_attrList() to obtain a list of all
+attributes within a file. This function utilizes a callback
+function to deliver each attribute to you. Important: Avoid
+calling BFS functions from within the callback function to
+prevent deadlocks.
+
+C Prototype
 
 	typedef int (*bfs_attr_fn)(void* priv,
 	                           const char* key,
@@ -79,12 +94,20 @@ function or a deadlock will occur.
 	                      void* priv,
 	                      bfs_attr_fn attr_fn);
 
-The bfs\_file\_attrGet() function may be used to get the
-value of an attribute. The tid parameter is the thread ID
-which must range from 0 to nth-1. At most size bytes will
-be written to val (including the terminating null byte).
-The bfs\_file\_attrGet() function will return success (1)
-with an empty val if the key does not exist in the file.
+Retriving Attribute Values
+--------------------------
+
+Use bfs\_file\_attrGet() to obtain the value of a specific
+attribute (key) within a file. Provide a thread ID (tid)
+between 0 and n-1 (where n is the number of allowed reader
+threads specified at file open) followed by the attribute
+key. Up to size bytes of the value, including the null
+terminator, will be written to the val buffer you provide.
+The function returns 1 (success) even if the key doesn't
+exist, in which case val will be empty. If an internal
+SQLite error occurs, the function returns 0 (error).
+
+C Prototype
 
 	int bfs_file_attrGet(bfs_file_t* self,
 	                     int tid,
@@ -92,28 +115,52 @@ with an empty val if the key does not exist in the file.
 	                     size_t size,
 	                     char* val);
 
-The bfs\_file\_attrSet() function may be used to set the
-value of an attribute.
+Setting Attribute Values
+------------------------
+
+Use bfs\_file\_attrSet() to assign a value to a specific
+attribute (key) within a file.
+
+C Prototype
 
 	int bfs_file_attrSet(bfs_file_t* self,
 	                     const char* key,
 	                     const char* val);
 
-The bfs\_file\_attrClr() function may be used to clear the
-value of an attribute.
+Clearing Attribute Values
+-------------------------
+
+Use bfs\_file\_attrClr() to remove a specific attribute
+(key) from a file.
+
+C Prototype
 
 	int bfs_file_attrClr(bfs_file_t* self,
 	                     const char* key);
 
-The bfs\_file\_blobList() function may be used to list all
-blobs in the file via a callback function. The user
-must not call into the BFS library from the callback
-function or a deadlock will occur. An optional search
-pattern may be specified to filter blobs on their name. Two
-wildcards are supported including the percent and underscore
-characters. The percent character matches any sequence of
-zero or more characters while the underscore character
-matches a single character.
+Listing Blobs
+-------------
+
+Use bfs\_file\_blobList() to enumerate all blob names within
+a file. This function utilizes a callback function to
+deliver each blob name to you. Important: Avoid calling BFS
+functions from within the callback function to prevent
+deadlocks.
+
+Optional Filtering: You can optionally provide a search
+pattern to filter the listed blobs based on their names. BFS
+supports two wildcard characters:
+
+* %: Matches any sequence of zero or more characters.
+* _: Matches a single character.
+
+For example, the pattern "image/%.png" would return all blob
+names matching the pattern "image/[any characters].png",
+such as "image/photo1.png" or "image/landscape.png". This
+can be useful for finding blobs with specific prefixes or
+patterns in their names.
+
+C Prototype
 
 	typedef int (*bfs_blob_fn)(void* priv,
 	                           const char* name,
@@ -123,17 +170,32 @@ matches a single character.
 	                      bfs_blob_fn blob_fn,
 	                      const char* pattern);
 
-The bfs\_file\_blobGet() function may be used to get the
-value of a blob. The tid parameter is the thread ID which
-must range from 0 to nth-1. The bfs\_file\_blobGet()
-function will return success (1) with an empty blob if the
-name does not exist in the file. Memory returned by the
-bfs\_file\_blobGet() function must be freed by the libcc
-FREE() function. The _data parameter may be used in
-multiple requests and may be resized accordingly. Note that
-the _size parameter will contain the size of the blob which
-may not match MEMSIZEPTR(*_data) which contains the size of
-the underlying allocation.
+Retrieving Blobs
+----------------
+
+Use bfs\_file\_blobGet() to obtain the value (data) of a
+specific blob within a file. Provide a thread ID (tid)
+between 0 and n-1 (where n is the number of allowed reader
+threads specified at file open) followed by the blob name.
+The function will allocate or reallocate memory for the blob
+data and store a pointer to it in \*\_data. The function
+returns the size of the retrieved data. Note:
+bfs\_file\_blobGet() is not supported in streaming mode.
+
+* Success: Return value of 1.
+* Error: Return value of 0, indicating an internal SQLite
+  error, memory allocation failure, or invalid mode.
+
+Important:
+
+* The returned data memory must be freed using libcc's
+  FREE() function, not the standard C library free().
+* The size of the allocated memory for the blob data can be
+  obtained using libcc's MEMSIZEPTR(*_data) function. This
+  value might be larger than the actual blob size returned
+  by bfs\_file\_blobGet().
+
+C Prototype
 
 	int bfs_file_blobGet(bfs_file_t* self,
 	                     int tid,
@@ -141,16 +203,27 @@ the underlying allocation.
 	                     size_t* _size,
 	                     void** _data);
 
-The bfs\_file\_blobSet() function may be used to set the
-value of a blob.
+Storing Blobs
+-------------
+
+Use bfs\_file\_blobSet() to write a value to a specific blob
+(name) within a file. If a blob with the same name already
+exists, it will be overwritten.
+
+C Prototype
 
 	int bfs_file_blobSet(bfs_file_t* self,
 	                     const char* name,
 	                     size_t size,
 	                     const void* data);
 
-The bfs\_file\_blobClr() function may be used to clear the
-value of a blob.
+Clearing Blobs
+--------------
+
+Use bfs\_file\_blobClr() to clear a specific blob (name)
+from a file.
+
+C Prototype
 
 	int bfs_file_blobClr(bfs_file_t* self,
 	                     const char* name);
@@ -158,33 +231,34 @@ value of a blob.
 Command Line Tool
 =================
 
-Usage
------
+Attributes
+----------
 
-Key/Val Attributes
+List, retrieve, assign and clear attributes.
 
 	bfs FILE attrList
 	bfs FILE attrGet KEY
 	bfs FILE attrSet KEY VAL
 	bfs FILE attrClr KEY
 
-Named Blobs
+Blobs
+-----
+
+List, retrieve, assign and clear blobs.
 
 	bfs FILE blobList [PATTERN]
 	bfs FILE blobGet NAME [OUTPUT]
 	bfs FILE blobSet NAME [INPUT]
 	bfs FILE blobClr NAME
 
-Blob file paths are typically derived from NAME but can
-also be overridden by file paths specified by INPUT/OUTPUT.
-
-An optional search PATTERN may be specified to filter blobs
-on their name. Two wildcards are supported including the
-percent and underscore characters. The percent character
-matches any sequence of zero or more characters while the
-underscore character matches a single character.
-
-	bfs FILE blobList image/%.jpg
+* PATTERN: An optional search pattern to filter blobs based
+  on their names. Supports wildcard characters % (matches
+  any sequence of characters) and \_ (matches any single
+  character).
+* OUTPUT: An optional file path to store the blob in binary
+  format.
+* INPUT: An optional file path to retrieve the blob in
+  binary format.
 
 Dependencies
 ============
