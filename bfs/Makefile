@@ -1,5 +1,3 @@
-export CC_USE_MATH = 1
-
 TARGET   = bfs
 CLASSES  =
 SOURCE   = $(TARGET).c $(CLASSES:%=%.c)

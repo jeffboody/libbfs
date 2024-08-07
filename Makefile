@@ -1,5 +1,3 @@
-export CC_USE_MATH = 1
-
 TARGET   = libbfs.a
 CLASSES  = bfs_file bfs_util
 SOURCE   = $(CLASSES:%=%.c)
